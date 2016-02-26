@@ -13,7 +13,11 @@ class StlWriter(object):
         self.base_height = base_height
         self.scale = scale
 
-    def save_grid(self, grid, filename):
+    def print_progress(self, noun, i, total):
+        sys.stdout.write("\r%s / %s %s      " % (i, total, noun))
+        sys.stdout.flush()
+
+    def save_grid(self, grid, filename, polygons=None):
         self.facets = []
         print "Saving %s" % filename
         with open(filename, "w") as fh:
@@ -22,84 +26,199 @@ class StlWriter(object):
             fh.write(struct.pack(b"<L", 0))
             self.num_written = 0
             # Main surface
-            for y in range(grid.height - 1):
-                for x in range(grid.width - 1):
-                    blh = grid[x, y]
-                    tlh = grid[x, y + 1]
-                    brh = grid[x + 1, y]
-                    trh = grid[x + 1, y + 1]
-                    assert blh > self.base_height, "Point below base: %s (%s, %s)" % (blh, x, y)
-                    assert tlh > self.base_height, "Point below base: %s (%s, %s)" % (tlh, x, y+1)
-                    assert brh > self.base_height, "Point below base: %s (%s, %s)" % (brh, x+1, y)
-                    assert trh > self.base_height, "Point below base: %s (%s, %s)" % (trh, x+1, y+1)
-                    self.add_facet(
-                        fh,
-                        x, y, blh,
-                        x, y + 1, tlh,
-                        x + 1, y + 1, trh,
-                    )
-                    self.add_facet(
-                        fh,
-                        x, y, blh,
-                        x + 1, y + 1, trh,
-                        x + 1, y, brh,
-                    )
+            if polygons is not None:
+                self.add_surface_polygons(fh, grid, polygons)
+            else:
+                self.add_surface_raw(fh, grid)
             # Edges
-            for x in range(grid.width - 1):
-                for y in [0, grid.height - 1]:
-                    lh = grid[x, y]
-                    rh = grid[x + 1, y]
-                    self.add_facet(
-                        fh,
-                        x, y, self.base_height,
-                        x, y, lh,
-                        x + 1, y, rh,
-                    )
-                    self.add_facet(
-                        fh,
-                        x, y, self.base_height,
-                        x + 1, y, rh,
-                        x + 1, y, self.base_height,
-                    )
-            for y in range(grid.height - 1):
-                for x in [0, grid.width - 1]:
-                    bh = grid[x, y]
-                    th = grid[x, y + 1]
-                    self.add_facet(
-                        fh,
-                        x, y, self.base_height,
-                        x, y, bh,
-                        x, y + 1, th,
-                    )
-                    self.add_facet(
-                        fh,
-                        x, y, self.base_height,
-                        x, y + 1, th,
-                        x, y + 1, self.base_height,
-                    )
+            self.add_edges(fh, grid)
             # Base
-            self.add_facet(
-                fh,
-                0, 0, self.base_height,
-                0, grid.height - 1, self.base_height,
-                grid.width - 1, grid.height - 1, self.base_height,
-            )
-            self.add_facet(
-                fh,
-                0, 0, self.base_height,
-                grid.width - 1, grid.height - 1, self.base_height,
-                grid.width - 1, 0, self.base_height,
-            )
+            self.add_base(fh, grid)
             # Update facet count
             fh.seek(80)
             fh.write(struct.pack(b"<L", self.num_written))
 
+    def add_surface_raw(self, fh, grid):
+        # Main surface
+        for y in range(grid.height - 1):
+            for x in range(grid.width - 1):
+                self.add_square(fh, grid, x, y)
+
+    def add_surface_polygons(self, fh, grid, polygons):
+        # Write out polygons first
+        in_polygons = set()
+        for i, polygon in enumerate(polygons):
+            self.print_progress("polygons", i, len(polygons))
+            for x, y in polygon:
+                in_polygons.add((x, y))
+            self.add_polygon(fh, grid, polygon)
+        print "done"
+        # Main surface that isn't in polygons
+        for y in range(grid.height - 1):
+            self.print_progress("rows", y, grid.height - 1)
+            for x in range(grid.width - 1):
+                if (x, y) not in in_polygons:
+                    self.add_square(fh, grid, x, y)
+        print "done"
+
+    def add_polygon(self, fh, grid, polygon):
+        polygon = set(polygon)
+        # Try to do contiguous rectangles of the polygon
+        while polygon:
+            x, y = sorted(polygon)[0]
+            w, h = 1, 1
+            # Grow rectangle until it hits a gap in the polygon
+            xok = lambda: all((x + w, dy) in polygon for dy in range(y, y + h))
+            yok = lambda: all((dx, y + h) in polygon for dx in range(x, x + w))
+            while True:
+                if xok():
+                    w += 1
+                else:
+                    break
+                if yok():
+                    h += 1
+                else:
+                    break
+            # Add that rectangle
+            self.add_rectangle(fh, grid, x, y, w, h)
+            # Remove those from the polygon
+            for dx in range(x, x + w):
+                for dy in range(y, y + h):
+                    polygon.remove((dx, dy))
+
+    def add_rectangle(self, fh, grid, x, y, w, h):
+        # We build a tristrip
+        even_points = []
+        odd_points = []
+        # Left edge
+        for dy in range(y, y + h):
+            even_points.append((x, dy))
+        # Bottom edge
+        for dx in range(x + 1, x + w):
+            odd_points.append((dx, y))
+        # Top edge
+        for dx in range(x, x + w):
+            even_points.append((dx, y + h))
+        # Right edge
+        for dy in range(y, y + h + 1):
+            odd_points.append((x + w, dy))
+        assert len(odd_points) == len(even_points)
+        points = []
+        for e, o in zip(even_points, odd_points):
+            points.append(e)
+            points.append(o)
+        # Draw tristrip
+        for i in range(len(points) - 2):
+            if i % 2:
+                self.add_grid_facet(fh, grid, *(points[i] + points[i + 1] + points[i + 2]))
+            else:
+                self.add_grid_facet(fh, grid, *(points[i] + points[i + 2] + points[i + 1]))
+
+    def add_square(self, fh, grid, x, y):
+        blh = grid[x, y]
+        tlh = grid[x, y + 1]
+        brh = grid[x + 1, y]
+        trh = grid[x + 1, y + 1]
+        minh = min(blh, tlh, brh, trh)
+        assert minh > self.base_height, "Point below base: %s (%s, %s)" % (minh, x, y)
+        # Put the seam in the best place
+        if abs(blh - trh) > abs(brh - tlh):
+            self.add_grid_facet(
+                fh, grid,
+                x, y,
+                x, y + 1,
+                x + 1, y,
+            )
+            self.add_grid_facet(
+                fh, grid,
+                x, y + 1,
+                x + 1, y + 1,
+                x + 1, y,
+            )
+        else:
+            self.add_grid_facet(
+                fh, grid,
+                x, y,
+                x, y + 1,
+                x + 1, y + 1,
+            )
+            self.add_grid_facet(
+                fh, grid,
+                x, y,
+                x + 1, y + 1,
+                x + 1, y,
+            )
+
+    def add_edges(self, fh, grid):
+        for x in range(grid.width - 1):
+            for y in [0, grid.height - 1]:
+                lh = grid[x, y]
+                rh = grid[x + 1, y]
+                self.add_facet(
+                    fh,
+                    x, y, self.base_height,
+                    x, y, lh,
+                    x + 1, y, rh,
+                )
+                self.add_facet(
+                    fh,
+                    x, y, self.base_height,
+                    x + 1, y, rh,
+                    x + 1, y, self.base_height,
+                )
+        for y in range(grid.height - 1):
+            for x in [0, grid.width - 1]:
+                bh = grid[x, y]
+                th = grid[x, y + 1]
+                self.add_facet(
+                    fh,
+                    x, y, self.base_height,
+                    x, y, bh,
+                    x, y + 1, th,
+                )
+                self.add_facet(
+                    fh,
+                    x, y, self.base_height,
+                    x, y + 1, th,
+                    x, y + 1, self.base_height,
+                )
+
+    def add_base(self, fh, grid):
+        self.add_facet(
+            fh,
+            0, 0, self.base_height,
+            0, grid.height - 1, self.base_height,
+            grid.width - 1, grid.height - 1, self.base_height,
+        )
+        self.add_facet(
+            fh,
+            0, 0, self.base_height,
+            grid.width - 1, grid.height - 1, self.base_height,
+            grid.width - 1, 0, self.base_height,
+        )
+
+    def add_grid_facet(self, fh, grid, x1, y1, x2, y2, x3, y3):
+        self.add_facet(
+            fh,
+            x1, y1, grid[x1, y1],
+            x2, y2, grid[x2, y2],
+            x3, y3, grid[x3, y3],
+        )
 
     def add_facet(self, fh, x1, y1, z1, x2, y2, z2, x3, y3, z3):
+        # Calculate normal - clockwise vectors from solid face
+        u = (x3 - x1, y3 - y1, z3 - z1)
+        v = (x2 - x1, y2 - y1, z2 - z1)
+        normal = (
+            (u[1] * v[2]) - (u[2] * v[1]),
+            (u[2] * v[0]) - (u[0] * v[2]),
+            (u[0] * v[1]) - (u[1] * v[0]),
+        )
+        # Write out entry
         fh.write(
             struct.pack(
                 b"<ffffffffffffH",
-                0, 0, 0,
+                normal[0], normal[1], normal[2],
                 x1 * self.scale, y1 * self.scale, z1 * self.scale,
                 x2 * self.scale, y2 * self.scale, z2 * self.scale,
                 x3 * self.scale, y3 * self.scale, z3 * self.scale,

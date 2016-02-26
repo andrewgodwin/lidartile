@@ -19,10 +19,14 @@ class AscIngestor(object):
 
     nodata_height = 0
 
-    def __init__(self, files, divisor):
+    def __init__(self, files, divisor, clip=None, zboost=1, snap=None, snapexp=1):
         assert files, "No files!"
         self.files = files
         self.divisor = divisor
+        self.clip = clip
+        self.zboost = zboost
+        self.snap = snap
+        self.snapexp = snapexp
         self.cellsize = None
         self.left = None
         self.bottom = None
@@ -54,7 +58,7 @@ class AscIngestor(object):
         step = self.cellsize * self.divisor
         if ((dx < 0) or (dx % step) or (dy < 0) or (dy % step)) and not floor:
             raise ValueError("Tried to find array index of impossible coords %s, %s" % (x, y))
-        return (dx // step) + ((dy // step) * self.grid.width)
+        return int((dx // step) + ((dy // step) * self.grid.width))
 
     def find_limits(self):
         minx, maxx = POSINF, NEGINF
@@ -66,7 +70,7 @@ class AscIngestor(object):
             with open(filename, "r") as fh:
                 for line in fh:
                     bits = line.strip().split()
-                    data[bits[0]] = int(bits[1])
+                    data[bits[0]] = float(bits[1])
                     if len(data) > 4:
                         break
             # Check cellsize
@@ -94,7 +98,7 @@ class AscIngestor(object):
                 bits = line.strip().split()
                 # Meta info reading?
                 if len(bits) == 2:
-                    meta[bits[0]] = int(bits[1])
+                    meta[bits[0]] = float(bits[1])
                 # Main info reading
                 else:
                     for j, bit in enumerate(bits):
@@ -106,15 +110,25 @@ class AscIngestor(object):
                         bit = float(bit)
                         if bit == meta['NODATA_value']:
                             bit = self.nodata_height
+                        if self.snap:
+                            snapval = (float(abs(bit // 10) + 1) ** self.snapexp) * self.snap
+                            bit = round(bit / snapval) * snapval
+                        if self.clip is not None:
+                            bit = max(bit, self.clip)
                         # Cluster into the right divisor sections
                         prevpoints.setdefault(idx, []).append(bit)
                         if ((j + 1) % self.divisor == 0) and ((row + 1) % self.divisor == 0):
                             # Last point in this cluster, write it out
                             assert len(prevpoints[idx]) == self.divisor ** 2, "Wrong size cluster %s" % prevpoints[idx]
-                            value = self.coalesce(prevpoints[idx])
+                            value = self.coalesce(prevpoints[idx]) * self.zboost
                             self.grid[idx] = value
                             del prevpoints[idx]
                     row += 1
 
     def coalesce(self, values):
-        return (sum(values) / float(len(values))) / float(self.divisor)
+        #start_sl = len(values) // 4
+        #end_sl = len(values) - start_sl
+        start_sl = len(values) // 2
+        end_sl = len(values)
+        values = sorted(values)[start_sl:end_sl]
+        return (sum(values) / float(len(values))) / self.divisor
