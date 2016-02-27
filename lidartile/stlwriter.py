@@ -110,9 +110,9 @@ class StlWriter(object):
         # Draw tristrip
         for i in range(len(points) - 2):
             if i % 2:
-                self.add_grid_facet(fh, grid, *(points[i] + points[i + 1] + points[i + 2]))
-            else:
                 self.add_grid_facet(fh, grid, *(points[i] + points[i + 2] + points[i + 1]))
+            else:
+                self.add_grid_facet(fh, grid, *(points[i] + points[i + 1] + points[i + 2]))
 
     def add_square(self, fh, grid, x, y):
         blh = grid[x, y]
@@ -126,62 +126,98 @@ class StlWriter(object):
             self.add_grid_facet(
                 fh, grid,
                 x, y,
-                x, y + 1,
                 x + 1, y,
+                x, y + 1,
             )
             self.add_grid_facet(
                 fh, grid,
                 x, y + 1,
-                x + 1, y + 1,
                 x + 1, y,
+                x + 1, y + 1,
             )
         else:
             self.add_grid_facet(
                 fh, grid,
                 x, y,
-                x, y + 1,
                 x + 1, y + 1,
+                x, y + 1,
             )
             self.add_grid_facet(
                 fh, grid,
                 x, y,
-                x + 1, y + 1,
                 x + 1, y,
+                x + 1, y + 1,
             )
 
     def add_edges(self, fh, grid):
+        # Bottom edge
+        y = 0
         for x in range(grid.width - 1):
-            for y in [0, grid.height - 1]:
-                lh = grid[x, y]
-                rh = grid[x + 1, y]
-                self.add_facet(
-                    fh,
-                    x, y, self.base_height,
-                    x, y, lh,
-                    x + 1, y, rh,
-                )
-                self.add_facet(
-                    fh,
-                    x, y, self.base_height,
-                    x + 1, y, rh,
-                    x + 1, y, self.base_height,
-                )
+            lh = grid[x, y]
+            rh = grid[x + 1, y]
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x + 1, y, rh,
+                x, y, lh,
+            )
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x + 1, y, self.base_height,
+                x + 1, y, rh,
+            )
+        # Top edge
+        y = grid.height - 1
+        for x in range(grid.width - 1):
+            lh = grid[x, y]
+            rh = grid[x + 1, y]
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x, y, lh,
+                x + 1, y, rh,
+            )
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x + 1, y, rh,
+                x + 1, y, self.base_height,
+            )
+        # Left edge
+        x = 0
         for y in range(grid.height - 1):
-            for x in [0, grid.width - 1]:
-                bh = grid[x, y]
-                th = grid[x, y + 1]
-                self.add_facet(
-                    fh,
-                    x, y, self.base_height,
-                    x, y, bh,
-                    x, y + 1, th,
-                )
-                self.add_facet(
-                    fh,
-                    x, y, self.base_height,
-                    x, y + 1, th,
-                    x, y + 1, self.base_height,
-                )
+            bh = grid[x, y]
+            th = grid[x, y + 1]
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x, y, bh,
+                x, y + 1, th,
+            )
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x, y + 1, th,
+                x, y + 1, self.base_height,
+            )
+        # Right edge
+        x = grid.width - 1
+        for y in range(grid.height - 1):
+            bh = grid[x, y]
+            th = grid[x, y + 1]
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x, y + 1, th,
+                x, y, bh,
+            )
+            self.add_facet(
+                fh,
+                x, y, self.base_height,
+                x, y + 1, self.base_height,
+                x, y + 1, th,
+            )
 
     def add_base(self, fh, grid):
         self.add_facet(
@@ -207,12 +243,18 @@ class StlWriter(object):
 
     def add_facet(self, fh, x1, y1, z1, x2, y2, z2, x3, y3, z3):
         # Calculate normal - clockwise vectors from solid face
-        u = (x3 - x1, y3 - y1, z3 - z1)
-        v = (x2 - x1, y2 - y1, z2 - z1)
+        u = (x2 - x1, y2 - y1, z2 - z1)
+        v = (x3 - x1, y3 - y1, z3 - z1)
         normal = (
             (u[1] * v[2]) - (u[2] * v[1]),
             (u[2] * v[0]) - (u[0] * v[2]),
             (u[0] * v[1]) - (u[1] * v[0]),
+        )
+        normal_magnitude = ((normal[0]**2) + (normal[1]**2) + (normal[2]**2)) ** 0.5
+        normal = (
+            normal[0] / normal_magnitude,
+            normal[1] / normal_magnitude,
+            normal[2] / normal_magnitude,
         )
         # Write out entry
         fh.write(

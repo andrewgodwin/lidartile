@@ -32,7 +32,7 @@ def main():
     else:
         polygons = None
     writer = StlWriter(base_height=-args.base, scale=0.3)
-    writer.save_grid(ingestor.grid, "test.stl", polygons=polygons)
+    writer.save_grid(ingestor.grid, "output.stl", polygons=polygons)
 
 
 if __name__ == "__main__":
