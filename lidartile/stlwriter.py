@@ -41,6 +41,7 @@ class StlWriter(object):
     def add_surface_raw(self, fh, grid):
         # Main surface
         for y in range(grid.height - 1):
+            self.print_progress("rows", y, grid.height - 1)
             for x in range(grid.width - 1):
                 self.add_square(fh, grid, x, y)
 

@@ -48,3 +48,16 @@ class Grid(object):
                 s = pstdev(others)
                 limit = s * (1 / factor)
                 self[x, y] = clip(height, m - limit, m + limit)
+
+    def slice(self, x, y, w, h):
+        """
+        Returns a sub-grid
+        """
+        assert x + w <= self.width
+        assert y + h <= self.height
+        result = self.__class__(w, h)
+        for y in range(y, y + h):
+            idx = x + (y * w)
+            ouridx = x + (y * self.width)
+            result.data[idx:idx+w] = self.data[ouridx:ouridx+w]
+        return result

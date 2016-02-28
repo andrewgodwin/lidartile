@@ -17,13 +17,15 @@ def main():
     parser.add_argument("-s", "--snap", type=float, default=0)
     parser.add_argument("-e", "--snapexp", type=float, default=0)
     parser.add_argument("-m", "--smoothing", type=float, default=1)
+    parser.add_argument("-l", "--scale", type=float, default=0.3)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
     ingestor = AscIngestor(args.files, divisor=args.divisor, clip=-args.clip, zboost=args.zboost, snap=args.snap, snapexp=args.snapexp)
     ingestor.load()
+    grid = ingestor.grid
     print "Smoothing..."
-    ingestor.grid.smooth(factor=args.smoothing)
+    grid.smooth(factor=args.smoothing)
     if args.featuresize:
         optimiser = GridOptimiser(ingestor.grid, delta=args.featuresize)
         print "Optimising..."
@@ -31,7 +33,7 @@ def main():
         print "%s polygons found" % len(polygons)
     else:
         polygons = None
-    writer = StlWriter(base_height=-args.base, scale=0.3)
+    writer = StlWriter(base_height=-args.base, scale=args.scale)
     writer.save_grid(ingestor.grid, "output.stl", polygons=polygons)
 
 
