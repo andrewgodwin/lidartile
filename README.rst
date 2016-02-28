@@ -8,6 +8,10 @@ Run it like this::
 
     python -m lidartile.cli -d 4 -f 0.5 -b 5 -c 2 -z 1.5 -s 3 -m 2 ~/Downloads/LIDAR-DSM-1M-TQ37/tq3979_DSM_1m.asc
 
+You can pass as many .asc files as you like on the commandline and it'll merge
+them all into one tile. Make sure they're adjacent, though, or it'll fill in
+the gaps with empty 0-height space and you'll have a huge file!
+
 Options are:
 
 * ``-d``: Divisor - how many points to combine into one height value for model simplicity
