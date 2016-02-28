@@ -1,5 +1,5 @@
 LidarTile
----------
+=========
 
 Little program to convert LIDAR scans into 3D-printable .STL tiles. Accepts
 ESRI ASCII grid formats only, right now.
@@ -24,3 +24,11 @@ Options are:
 * ``-s``: Snap value, rounds heights to multiples of this for flatter surfaces
 
 * ``-m``: Smoothing factor. Higher is more smooth.
+
+
+Commandline Examples
+--------------------
+
+My London tiles are built like this, from the Environment Agency 1m DSM set::
+
+    python -m lidartile.cli -d 1 -f 0 -b 20 -c 10 -z 1.5 -s 3 -m 2 -l 0.075 ~/Downloads/LIDAR-DSM-1M-TQ48/tq4081_DSM_1m.asc
