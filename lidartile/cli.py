@@ -15,18 +15,20 @@ def main():
     parser.add_argument("-c", "--clip", type=float, default=5)
     parser.add_argument("-z", "--zboost", type=float, default=1)
     parser.add_argument("-s", "--snap", type=float, default=0)
-    parser.add_argument("-e", "--snapexp", type=float, default=0)
     parser.add_argument("-m", "--smoothing", type=float, default=0)
     parser.add_argument("-l", "--scale", type=float, default=0.3)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
-    ingestor = AscIngestor(args.files, divisor=args.divisor, clip=-args.clip, zboost=args.zboost, snap=args.snap, snapexp=args.snapexp)
+    ingestor = AscIngestor(args.files, divisor=args.divisor, clip=-args.clip, zboost=args.zboost)
     ingestor.load()
     grid = ingestor.grid
     if args.smoothing:
         print "Smoothing..."
         grid.smooth(factor=args.smoothing)
+    if args.snap:
+        print "Snapping..."
+        grid.snap(args.snap)
     if args.featuresize:
         optimiser = GridOptimiser(ingestor.grid, delta=args.featuresize)
         print "Optimising..."

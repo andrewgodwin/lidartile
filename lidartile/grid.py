@@ -61,3 +61,10 @@ class Grid(object):
             ouridx = x + (y * self.width)
             result.data[idx:idx+w] = self.data[ouridx:ouridx+w]
         return result
+
+    def snap(self, delta):
+        """
+        In-place value snapper
+        """
+        for i, value in enumerate(self.data):
+            self.data[i] = round(value / delta) * delta

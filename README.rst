@@ -35,7 +35,7 @@ Commandline Examples
 
 My London tiles are built like this, from the Environment Agency 1m DSM set::
 
-    python -m lidartile.cli -d 1 -f 0 -b 20 -c 10 -z 1.5 -s 3 -m 2 -l 0.075 ~/Downloads/LIDAR-DSM-1M-TQ48/tq4081_DSM_1m.asc
+    python -m lidartile.cli -d 1 -b 20 -c 10 -z 1.5 -m 2 -l 0.075 ~/Downloads/LIDAR-DSM-1M-TQ48/tq4081_DSM_1m.asc
 
 An example of what they look like:
 
