@@ -17,6 +17,7 @@ def main():
     parser.add_argument("-s", "--snap", type=float, default=0)
     parser.add_argument("-m", "--smoothing", type=float, default=0)
     parser.add_argument("-l", "--scale", type=float, default=0.3)
+    parser.add_argument("-o", "--output", default="output.stl")
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
@@ -37,7 +38,7 @@ def main():
     else:
         polygons = None
     writer = StlWriter(base_height=-args.base, scale=args.scale)
-    writer.save_grid(ingestor.grid, "output.stl", polygons=polygons)
+    writer.save_grid(ingestor.grid, args.output, polygons=polygons)
 
 
 if __name__ == "__main__":
