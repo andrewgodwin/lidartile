@@ -29,13 +29,15 @@ Options are:
 
 * ``-m``: Smoothing factor. Higher is more smooth.
 
+* ``-l``: Scale. Use numbers less than 1 to scale down, e.g. 0.5 is half scale.
+
 
 Commandline Examples
 --------------------
 
-My London tiles are built like this, from the Environment Agency 1m DSM set::
+My London tiles are built somewhat like this, from the Environment Agency 1m DSM set::
 
-    python -m lidartile.cli -d 1 -b 20 -c 10 -z 1.5 -m 2 -l 0.075 ~/Downloads/LIDAR-DSM-1M-TQ48/tq4081_DSM_1m.asc
+    python -m lidartile.cli -d 1 -b 5 -c 10 -z 1.5 -m 2 -l 0.075 ~/Downloads/LIDAR-DSM-1M-TQ48/tq4081_DSM_1m.asc
 
 An example of what they look like:
 
