@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import array
+import sys
 from .stats import mean, pstdev, clip
 
 class Grid(object):
@@ -68,3 +69,22 @@ class Grid(object):
         """
         for i, value in enumerate(self.data):
             self.data[i] = round(value / delta) * delta
+
+    def lower(self, delta):
+        """
+        Lowers every amount in the grid by the given amount, clipping to 0
+        as the lowest value.
+        """
+        for i, value in enumerate(self.data):
+            self.data[i] = max(value - delta, 0)
+
+    def range(self):
+        """
+        Returns min, max tuple of height values in this grid
+        """
+        lowest = sys.maxint
+        highest = 0
+        for value in self.data:
+            lowest = min(lowest, value)
+            highest = max(highest, value)
+        return lowest, highest

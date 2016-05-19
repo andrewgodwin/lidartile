@@ -21,9 +21,12 @@ def main():
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
-    ingestor = AscIngestor(args.files, divisor=args.divisor, clip=-args.clip, zboost=args.zboost)
+    ingestor = AscIngestor(args.files, divisor=args.divisor, zboost=args.zboost)
     ingestor.load()
     grid = ingestor.grid
+    if args.clip:
+        print "Clipping..."
+        grid.lower(args.clip)
     if args.smoothing:
         print "Smoothing..."
         grid.smooth(factor=args.smoothing)
@@ -37,8 +40,11 @@ def main():
         print "%s polygons found" % len(polygons)
     else:
         polygons = None
+    lowest, highest = grid.range()
+    print "Grid ranges from %s to %s" % (lowest, highest)
     writer = StlWriter(base_height=-args.base, scale=args.scale)
     writer.save_grid(ingestor.grid, args.output, polygons=polygons)
+    print ""
 
 
 if __name__ == "__main__":

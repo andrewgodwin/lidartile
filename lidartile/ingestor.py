@@ -19,11 +19,10 @@ class AscIngestor(object):
 
     nodata_height = 0
 
-    def __init__(self, files, divisor, clip=None, zboost=1):
+    def __init__(self, files, divisor, zboost=1):
         assert files, "No files!"
         self.files = files
         self.divisor = divisor
-        self.clip = clip
         self.zboost = zboost
         self.cellsize = None
         self.left = None
@@ -108,8 +107,6 @@ class AscIngestor(object):
                         bit = float(bit)
                         if bit == meta['NODATA_value']:
                             bit = self.nodata_height
-                        if self.clip is not None:
-                            bit = max(bit, self.clip)
                         # Cluster into the right divisor sections
                         prevpoints.setdefault(idx, []).append(bit)
                         if ((j + 1) % self.divisor == 0) and ((row + 1) % self.divisor == 0):
