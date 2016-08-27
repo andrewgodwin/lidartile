@@ -20,7 +20,7 @@ class StlWriter(object):
     def save_grid(self, grid, filename, polygons=None):
         self.facets = []
         print "Saving %s" % filename
-        with open(filename, "w") as fh:
+        with open(filename, "wb") as fh:
             fh.write(b" " * 80)
             # We'll update this later
             fh.write(struct.pack(b"<L", 0))
