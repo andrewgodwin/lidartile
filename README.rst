@@ -31,6 +31,8 @@ Options are:
 
 * ``-l``: Scale. Use numbers less than 1 to scale down, e.g. 0.5 is half scale.
 
+* ``-ix,iy,iw,ih``: Sub-grid, use to cut out a certain piece from the input map. ``x,y`` define lower-left corner and ``w,h`` the width and height of the cut-out.
+
 
 Commandline Examples
 --------------------

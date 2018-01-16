@@ -18,11 +18,17 @@ def main():
     parser.add_argument("-m", "--smoothing", type=float, default=0)
     parser.add_argument("-l", "--scale", type=float, default=0.3)
     parser.add_argument("-o", "--output", default="output.stl")
+    parser.add_argument("-ix", "--slicex", type=int, default=0)
+    parser.add_argument("-iy", "--slicey", type=int, default=0)
+    parser.add_argument("-iw", "--slicewidth", type=int, default=0)
+    parser.add_argument("-ih", "--sliceheight", type=int, default=0)
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
 
     ingestor = AscIngestor(args.files, divisor=args.divisor, zboost=args.zboost)
     ingestor.load()
+    if args.slicewidth and args.sliceheight:
+        ingestor.grid = ingestor.grid.slice(args.slicex, args.slicey, args.slicewidth, args.sliceheight)
     grid = ingestor.grid
     if args.clip:
         print "Clipping..."
